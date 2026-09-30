@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
-import { supabase } from "../supabase"
-import Sidebar from "./Sidebar"
 import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi"
+import { supabase } from "../../supabase"
+import Sidebar from "./Sidebar"
 
 const emptyForm = { title: "", description: "", tech: "", image: "", live_url: "", repo_url: "" }
 

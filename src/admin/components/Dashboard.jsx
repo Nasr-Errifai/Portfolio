@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
-import { supabase } from "../supabase"
-import Sidebar from "./Sidebar"
 import { FiFolder, FiCode, FiUser, FiMail } from "react-icons/fi"
+import { supabase } from "../../supabase"
+import Sidebar from "./Sidebar"
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ projects: 0, skills: 0 })

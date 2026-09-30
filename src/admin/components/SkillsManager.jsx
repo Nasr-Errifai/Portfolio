@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react"
-import { supabase } from "../supabase"
-import Sidebar from "./Sidebar"
 import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi"
-
-const emptyForm = { name: "", category: "" }
+import { supabase } from "../../supabase"
+import Sidebar from "./Sidebar"
 
 export default function SkillsManager() {
   const [skills, setSkills] = useState([])
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState({ name: "", category: "" })
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -22,7 +20,7 @@ export default function SkillsManager() {
     } else {
       await supabase.from("skills").insert([form])
     }
-    setForm(emptyForm)
+    setForm({ name: "", category: "" })
     setEditingId(null)
     setShowForm(false)
     load()
@@ -54,7 +52,7 @@ export default function SkillsManager() {
       <main className="flex-1 p-8">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Skills</h1>
-          <button onClick={() => { setShowForm(!showForm); setForm(emptyForm); setEditingId(null) }}
+          <button onClick={() => { setShowForm(!showForm); setForm({ name: "", category: "" }); setEditingId(null) }}
             className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim"
           ><FiPlus /> {showForm ? "Cancel" : "Add Skill"}</button>
         </div>

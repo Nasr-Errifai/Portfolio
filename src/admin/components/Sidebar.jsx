@@ -1,13 +1,13 @@
 import { NavLink } from "react-router-dom"
-import { supabase } from "../supabase"
+import { supabase } from "../../supabase"
 import { FiGrid, FiFolder, FiCode, FiUser, FiMail, FiLogOut } from "react-icons/fi"
 
 const links = [
-  { to: "/dashboard", icon: FiGrid, label: "Overview" },
-  { to: "/dashboard/projects", icon: FiFolder, label: "Projects" },
-  { to: "/dashboard/skills", icon: FiCode, label: "Skills" },
-  { to: "/dashboard/about", icon: FiUser, label: "About" },
-  { to: "/dashboard/contact", icon: FiMail, label: "Contact" },
+  { to: "/admin/dashboard", icon: FiGrid, label: "Overview" },
+  { to: "/admin/dashboard/projects", icon: FiFolder, label: "Projects" },
+  { to: "/admin/dashboard/skills", icon: FiCode, label: "Skills" },
+  { to: "/admin/dashboard/about", icon: FiUser, label: "About" },
+  { to: "/admin/dashboard/contact", icon: FiMail, label: "Contact" },
 ]
 
 export default function Sidebar() {
@@ -22,7 +22,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === "/dashboard"}
+            end={to === "/admin/dashboard"}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                 isActive ? "bg-accent/10 text-accent" : "text-gray-400 hover:bg-gray-800 hover:text-white"

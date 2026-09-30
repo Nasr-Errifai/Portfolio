@@ -1,26 +1,26 @@
-import Navbar from "./components/Navbar"
-import Hero from "./components/Hero"
-import About from "./components/About"
-import Projects from "./components/Projects"
-import Skills from "./components/Skills"
-import Contact from "./components/Contact"
-import Footer from "./components/Footer"
+import { lazy, Suspense } from "react"
+import { Routes, Route, Navigate } from "react-router-dom"
+import Home from "./pages/Home"
 
-function App() {
-  return (
-    <>
-      <div className="grain-overlay" />
-      <Navbar />
-      <main>
-        <Hero />
-        <About />
-        <Projects />
-        <Skills />
-        <Contact />
-      </main>
-      <Footer />
-    </>
-  )
+const AdminLayout = lazy(() => import("./admin/AdminLayout"))
+
+function Loading() {
+  return <div className="flex min-h-screen items-center justify-center bg-bg text-gray-400">Loading...</div>
 }
 
-export default App
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route
+        path="/admin/*"
+        element={
+          <Suspense fallback={<Loading />}>
+            <AdminLayout />
+          </Suspense>
+        }
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
-import { supabase } from "../supabase"
 import { useNavigate } from "react-router-dom"
 import { FcGoogle } from "react-icons/fc"
+import { supabase } from "../../supabase"
 
 export default function Login() {
   const [error, setError] = useState("")
@@ -9,12 +9,15 @@ export default function Login() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/dashboard", { replace: true })
+      if (session) navigate("/admin/dashboard", { replace: true })
     })
   }, [navigate])
 
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google" })
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/admin/dashboard` },
+    })
     if (error) setError(error.message)
   }
 
