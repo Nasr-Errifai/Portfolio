@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Navigate } from "react-router-dom"
 import { supabase } from "../supabase"
+import { run } from "../lib/query"
 
 function Loading() {
   return <div className="flex min-h-screen items-center justify-center text-gray-400">Loading...</div>
@@ -24,14 +25,21 @@ export default function ProtectedRoute({ children }) {
   const [blocked, setBlocked] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
+    let active = true
+    run("auth.getSession", () => supabase.auth.getSession()).then((res) => {
+      if (!active) return
+      setSession(res.ok ? (res.data?.session ?? null) : null)
       setLoading(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
     })
-    return () => subscription.unsubscribe()
+
+    return () => {
+      active = false
+      data.subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
@@ -41,23 +49,25 @@ export default function ProtectedRoute({ children }) {
     setBlocked(null)
     // Not called inside onAuthStateChange: awaiting a Supabase call
     // from that callback deadlocks the client.
-    supabase.rpc("is_admin").then(({ data, error }) => {
+    run("rpc.is_admin", () => supabase.rpc("is_admin")).then((res) => {
       if (!active) return
-      if (error) {
-        setBlocked({ message: error.message, signOut: false })
+      if (!res.ok) {
+        setBlocked({ message: res.error, signOut: false })
         return
       }
-      if (!data) {
+      if (!res.data) {
         setBlocked({ message: "This account doesn't have access", signOut: true })
         return
       }
       setIsAdmin(true)
     })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [session, loading])
 
   useEffect(() => {
-    if (blocked?.signOut) supabase.auth.signOut()
+    if (blocked?.signOut) run("auth.signOut (no access)", () => supabase.auth.signOut())
   }, [blocked])
 
   // Checked before the session redirect, otherwise signing out would

@@ -2,23 +2,29 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { FcGoogle } from "react-icons/fc"
 import { supabase } from "../../supabase"
+import { run } from "../../lib/query"
 
 export default function Login() {
   const [error, setError] = useState("")
   const navigate = useNavigate()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/admin/dashboard", { replace: true })
+    run("auth.getSession", () => supabase.auth.getSession()).then((res) => {
+      if (res.ok && res.data?.session) {
+        navigate("/admin/dashboard", { replace: true })
+      }
     })
   }, [navigate])
 
   const signIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/admin/dashboard` },
-    })
-    if (error) setError(error.message)
+    setError("")
+    const res = await run("auth.signInWithOAuth", () =>
+      supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/admin/dashboard` },
+      })
+    )
+    if (!res.ok) setError(res.error)
   }
 
   return (
@@ -32,7 +38,11 @@ export default function Login() {
         >
           <FcGoogle size={20} /> Sign in with Google
         </button>
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-4 text-sm text-red-400">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   )

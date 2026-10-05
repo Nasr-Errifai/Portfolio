@@ -1,27 +1,72 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../../supabase"
+import { run } from "../../lib/query"
 import Sidebar from "./Sidebar"
 
+const COLUMNS = "email, github, linkedin, resume_url, message"
+
+const emptyForm = { email: "", github: "", linkedin: "", resume_url: "", message: "" }
+
 export default function ContactEditor() {
-  const [form, setForm] = useState({ email: "", github: "", linkedin: "", resume_url: "", message: "" })
+  const [form, setForm] = useState(emptyForm)
+  const [loadError, setLoadError] = useState("")
+  const [saveError, setSaveError] = useState("")
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    supabase.from("content").select("*").single().then(({ data }) => {
-      if (data) setForm(data)
+    let active = true
+    // Only this editor's own columns, so the bio and photo are never
+    // loaded here and can never be written back over.
+    run("content.select (contact editor)", () =>
+      supabase.from("content").select(COLUMNS).single()
+    ).then((res) => {
+      if (!active) return
+      if (res.ok) {
+        setForm({
+          email: res.data?.email || "",
+          github: res.data?.github || "",
+          linkedin: res.data?.linkedin || "",
+          resume_url: res.data?.resume_url || "",
+          message: res.data?.message || "",
+        })
+        setLoadError("")
+      } else {
+        setLoadError(res.error)
+      }
     })
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleSave = async (e) => {
     e.preventDefault()
-    const { data: existing } = await supabase.from("content").select("id").single()
-    if (existing) {
-      await supabase.from("content").update(form).eq("id", existing.id)
-    } else {
-      await supabase.from("content").insert([form])
+    setSaveError("")
+    setSaved(false)
+
+    const existing = await run("content.select id (contact editor)", () =>
+      supabase.from("content").select("id").single()
+    )
+    if (!existing.ok) {
+      setSaveError(existing.error)
+      return
     }
+
+    const res = existing.data
+      ? await run("content.update (contact)", () =>
+          supabase.from("content").update(form).eq("id", existing.data.id)
+        )
+      : await run("content.insert (contact)", () =>
+          supabase.from("content").insert([form])
+        )
+
+    // Nothing is cleared on failure, so the typed values are never lost.
+    if (!res.ok) {
+      setSaveError(res.error)
+      return
+    }
+
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }
 
   const fields = [
@@ -37,19 +82,48 @@ export default function ContactEditor() {
       <Sidebar />
       <main className="flex-1 p-8">
         <h1 className="mb-8 text-2xl font-bold">Contact Section</h1>
+
+        {loadError && (
+          <p role="alert" className="mb-6 text-sm text-red-400">
+            {loadError}
+          </p>
+        )}
+
         <form onSubmit={handleSave} className="max-w-xl space-y-5">
           {fields.map(({ key, label, placeholder }) => (
             <div key={key}>
-              <label className="mb-2 block text-sm text-gray-400">{label}</label>
+              <label className="mb-2 block text-sm text-gray-400" htmlFor={`contact-${key}`}>{label}</label>
               {key === "message" ? (
-                <textarea className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-3 text-sm focus:border-accent focus:outline-none" rows={3} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} placeholder={placeholder} />
+                <textarea
+                  id={`contact-${key}`}
+                  className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-3 text-sm focus:border-accent focus:outline-none"
+                  rows={3}
+                  value={form[key]}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                />
               ) : (
-                <input className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} placeholder={placeholder} />
+                <input
+                  id={`contact-${key}`}
+                  className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none"
+                  value={form[key]}
+                  onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                  placeholder={placeholder}
+                />
               )}
             </div>
           ))}
-          <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">Save Changes</button>
-          {saved && <span className="ml-4 text-sm text-green-400">Saved!</span>}
+          <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">
+            Save Changes
+          </button>
+          {saveError && (
+            <p role="alert" className="text-sm text-red-400">
+              {saveError}
+            </p>
+          )}
+          {saved && !saveError && (
+            <p className="text-sm text-green-400">Saved!</p>
+          )}
         </form>
       </main>
     </div>

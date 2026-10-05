@@ -1,31 +1,63 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../../supabase"
+import { run } from "../../lib/query"
 import Sidebar from "./Sidebar"
 
 export default function AboutEditor() {
   const [bio, setBio] = useState("")
   const [photoUrl, setPhotoUrl] = useState("")
+  const [loadError, setLoadError] = useState("")
+  const [saveError, setSaveError] = useState("")
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    supabase.from("content").select("*").single().then(({ data }) => {
-      if (data) {
-        setBio(data.bio || "")
-        setPhotoUrl(data.photo_url || "")
+    let active = true
+    run("content.select (about editor)", () =>
+      supabase.from("content").select("bio, photo_url").single()
+    ).then((res) => {
+      if (!active) return
+      if (res.ok) {
+        setBio(res.data?.bio || "")
+        setPhotoUrl(res.data?.photo_url || "")
+        setLoadError("")
+      } else {
+        setLoadError(res.error)
       }
     })
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleSave = async (e) => {
     e.preventDefault()
-    const { data: existing } = await supabase.from("content").select("id").single()
-    if (existing) {
-      await supabase.from("content").update({ bio, photo_url: photoUrl }).eq("id", existing.id)
-    } else {
-      await supabase.from("content").insert([{ bio, photo_url: photoUrl }])
+    setSaveError("")
+    setSaved(false)
+
+    const existing = await run("content.select id (about editor)", () =>
+      supabase.from("content").select("id").single()
+    )
+    if (!existing.ok) {
+      setSaveError(existing.error)
+      return
     }
+
+    const fields = { bio, photo_url: photoUrl }
+    const res = existing.data
+      ? await run("content.update (about)", () =>
+          supabase.from("content").update(fields).eq("id", existing.data.id)
+        )
+      : await run("content.insert (about)", () =>
+          supabase.from("content").insert([fields])
+        )
+
+    // Nothing is cleared on failure, so the typed bio is never lost.
+    if (!res.ok) {
+      setSaveError(res.error)
+      return
+    }
+
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -33,18 +65,49 @@ export default function AboutEditor() {
       <Sidebar />
       <main className="flex-1 p-8">
         <h1 className="mb-8 text-2xl font-bold">About Section</h1>
+
+        {loadError && (
+          <p role="alert" className="mb-6 text-sm text-red-400">
+            {loadError}
+          </p>
+        )}
+
         <form onSubmit={handleSave} className="max-w-2xl space-y-6">
           <div>
-            <label className="mb-2 block text-sm text-gray-400">Bio</label>
-            <textarea className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-3 text-sm focus:border-accent focus:outline-none" rows={8} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Write your bio here." />
+            <label className="mb-2 block text-sm text-gray-400" htmlFor="about-bio">Bio</label>
+            <textarea
+              id="about-bio"
+              className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-3 text-sm focus:border-accent focus:outline-none"
+              rows={8}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Write your bio here."
+            />
           </div>
           <div>
-            <label className="mb-2 block text-sm text-gray-400">Photo URL</label>
-            <input className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" value={photoUrl} onChange={(e) => setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" />
-            {photoUrl && <img src={photoUrl} alt="Preview" className="mt-3 h-32 w-32 rounded-xl border border-gray-800 object-cover" />}
+            <label className="mb-2 block text-sm text-gray-400" htmlFor="about-photo">Photo URL</label>
+            <input
+              id="about-photo"
+              className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none"
+              value={photoUrl}
+              onChange={(e) => setPhotoUrl(e.target.value)}
+              placeholder="https://example.com/photo.jpg"
+            />
+            {photoUrl && (
+              <img src={photoUrl} alt="Preview" className="mt-3 h-32 w-32 rounded-xl border border-gray-800 object-cover" />
+            )}
           </div>
-          <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">Save Changes</button>
-          {saved && <span className="ml-4 text-sm text-green-400">Saved!</span>}
+          <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">
+            Save Changes
+          </button>
+          {saveError && (
+            <p role="alert" className="text-sm text-red-400">
+              {saveError}
+            </p>
+          )}
+          {saved && !saveError && (
+            <p className="text-sm text-green-400">Saved!</p>
+          )}
         </form>
       </main>
     </div>

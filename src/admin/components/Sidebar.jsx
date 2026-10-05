@@ -1,5 +1,7 @@
+import { useState } from "react"
 import { NavLink } from "react-router-dom"
 import { supabase } from "../../supabase"
+import { run } from "../../lib/query"
 import { FiGrid, FiFolder, FiCode, FiUser, FiMail, FiLogOut } from "react-icons/fi"
 
 const links = [
@@ -11,6 +13,14 @@ const links = [
 ]
 
 export default function Sidebar() {
+  const [error, setError] = useState("")
+
+  const handleSignOut = async () => {
+    setError("")
+    const res = await run("auth.signOut", () => supabase.auth.signOut())
+    if (!res.ok) setError(res.error)
+  }
+
   return (
     <aside className="flex h-screen w-56 flex-col border-r border-gray-800 bg-surface">
       <div className="flex items-center gap-2 border-b border-gray-800 px-5 py-4">
@@ -25,7 +35,9 @@ export default function Sidebar() {
             end={to === "/admin/dashboard"}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                isActive ? "bg-accent/10 text-accent" : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                isActive
+                  ? "bg-accent/10 text-accent"
+                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
               }`
             }
           >
@@ -35,11 +47,16 @@ export default function Sidebar() {
       </nav>
       <div className="border-t border-gray-800 p-3">
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={handleSignOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
         >
           <FiLogOut size={16} /> Sign Out
         </button>
+        {error && (
+          <p role="alert" className="mt-2 px-3 text-xs text-red-400">
+            {error}
+          </p>
+        )}
       </div>
     </aside>
   )
