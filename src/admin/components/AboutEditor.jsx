@@ -34,22 +34,14 @@ export default function AboutEditor() {
     setSaveError("")
     setSaved(false)
 
-    const existing = await run("content.select id (about editor)", () =>
-      supabase.from("content").select("id").single()
+    // content holds exactly one row (sql/02_content_single_row.sql), so a
+    // single upsert is enough. The other columns keep their values, because
+    // merge-duplicates only writes the fields sent here.
+    const res = await run("content.upsert (about)", () =>
+      supabase
+        .from("content")
+        .upsert({ id: 1, bio, photo_url: photoUrl }, { onConflict: "id" })
     )
-    if (!existing.ok) {
-      setSaveError(existing.error)
-      return
-    }
-
-    const fields = { bio, photo_url: photoUrl }
-    const res = existing.data
-      ? await run("content.update (about)", () =>
-          supabase.from("content").update(fields).eq("id", existing.data.id)
-        )
-      : await run("content.insert (about)", () =>
-          supabase.from("content").insert([fields])
-        )
 
     // Nothing is cleared on failure, so the typed bio is never lost.
     if (!res.ok) {

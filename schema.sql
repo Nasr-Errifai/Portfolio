@@ -1,4 +1,4 @@
--- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/oikjxuwedowzvcsqokxo/sql/new)
+-- Run this in Supabase SQL Editor (https://supabase.com/dashboard/project/quexisjgqxtqssitfbzb/sql/new)
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";

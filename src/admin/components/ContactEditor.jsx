@@ -44,21 +44,14 @@ export default function ContactEditor() {
     setSaveError("")
     setSaved(false)
 
-    const existing = await run("content.select id (contact editor)", () =>
-      supabase.from("content").select("id").single()
+    // content holds exactly one row (sql/02_content_single_row.sql), so a
+    // single upsert is enough. Only these five columns are sent, so bio and
+    // photo_url are never touched from here.
+    const res = await run("content.upsert (contact)", () =>
+      supabase
+        .from("content")
+        .upsert({ id: 1, ...form }, { onConflict: "id" })
     )
-    if (!existing.ok) {
-      setSaveError(existing.error)
-      return
-    }
-
-    const res = existing.data
-      ? await run("content.update (contact)", () =>
-          supabase.from("content").update(form).eq("id", existing.data.id)
-        )
-      : await run("content.insert (contact)", () =>
-          supabase.from("content").insert([form])
-        )
 
     // Nothing is cleared on failure, so the typed values are never lost.
     if (!res.ok) {
