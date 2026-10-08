@@ -1,8 +1,10 @@
 -- Step 2: restrict every write to admin accounts only.
 -- Run this in Supabase SQL Editor, after schema.sql.
--- Until you run it, any signed-in user can insert, update and delete
--- anything, because the policies only check auth.role() = 'authenticated'
--- and Supabase accepts new sign-ups by default.
+-- Until you run it, the write policies only check
+-- auth.role() = 'authenticated', and Supabase accepts new sign-ups by
+-- default, so any signed-in user can insert, update and delete anything.
+-- (A database installed from the current schema.sql already has these
+-- policies and can skip this file.)
 
 -- ============================================================
 -- 1. The list of admin users
@@ -32,7 +34,10 @@ as $$
   );
 $$;
 
-revoke execute on function public.is_admin() from public;
+-- Supabase grants EXECUTE on new functions to anon by default as well as to
+-- PUBLIC, so anon has to be named explicitly or this stays reachable at
+-- POST /rest/v1/rpc/is_admin with the anon key.
+revoke execute on function public.is_admin() from public, anon;
 grant execute on function public.is_admin() to authenticated;
 
 -- ============================================================

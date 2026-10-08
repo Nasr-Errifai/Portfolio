@@ -1,10 +1,12 @@
 -- Migration 02: the content table holds exactly one row, with id = 1.
 -- Run this in Supabase SQL Editor, after schema.sql and sql/01_admin_only.sql.
 --
--- schema.sql seeds its first row with a random uuid id, so running
--- schema.sql twice creates a second, empty content row. The app then
--- asks for one row with .single() and gets PGRST116 instead. This
--- migration merges every row into one and makes a second row impossible.
+-- The schema that shipped before this migration gave content.id a random
+-- uuid default, so running schema.sql twice created a second, empty content
+-- row. The app then asks for one row with .single() and gets PGRST116
+-- instead. This migration merges every row into one and makes a second row
+-- impossible. (A database installed from the current schema.sql already has
+-- smallint id = 1, so this is a no-op there.)
 --
 -- Safe to run twice: every statement below is idempotent.
 
