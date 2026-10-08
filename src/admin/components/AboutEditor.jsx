@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
+import { isHttpUrl, focusField } from "../../lib/validate"
 import Sidebar from "./Sidebar"
 
 export default function AboutEditor() {
@@ -32,10 +33,21 @@ export default function AboutEditor() {
     }
   }, [])
 
+  const photoInvalid = Boolean(photoUrl.trim()) && !isHttpUrl(photoUrl.trim())
+
   const handleSave = async (e) => {
     e.preventDefault()
+    if (saving) return
     setSaveError("")
     setSaved(false)
+
+    // The hint under the photo field already explains why, so saving is
+    // refused here and focus goes back to the field that needs fixing.
+    if (photoInvalid) {
+      focusField("about-photo")
+      return
+    }
+
     setSaving(true)
 
     // content holds exactly one row (sql/02_content_single_row.sql), so a
@@ -44,7 +56,7 @@ export default function AboutEditor() {
     const res = await run("content.upsert (about)", () =>
       supabase
         .from("content")
-        .upsert({ id: 1, bio, photo_url: photoUrl }, { onConflict: "id" })
+        .upsert({ id: 1, bio: bio.trim(), photo_url: photoUrl.trim() }, { onConflict: "id" })
     )
 
     setSaving(false)
@@ -74,29 +86,48 @@ export default function AboutEditor() {
           </p>
         )}
 
-        <form onSubmit={handleSave} className="max-w-2xl space-y-6">
+        <form onSubmit={handleSave} noValidate className="max-w-2xl space-y-6">
           <div>
             <label className="mb-2 block text-sm text-gray-400" htmlFor="about-bio">Bio</label>
             <textarea
               id="about-bio"
+              name="bio"
+              autoComplete="off"
               className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-3 text-sm focus:border-accent focus:outline-none"
               rows={8}
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Write your bio here."
+              onChange={(e) => {
+                setBio(e.target.value)
+                setSaved(false)
+              }}
+              placeholder="Write your bio here…"
             />
           </div>
           <div>
             <label className="mb-2 block text-sm text-gray-400" htmlFor="about-photo">Photo URL</label>
             <input
               id="about-photo"
+              name="photo_url"
+              type="url"
+              autoComplete="off"
+              spellCheck={false}
               className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none"
               value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="https://example.com/photo.jpg"
+              onChange={(e) => {
+                setPhotoUrl(e.target.value)
+                setSaved(false)
+              }}
+              placeholder="https://example.com/photo.jpg…"
+              aria-invalid={photoInvalid}
+              aria-describedby={photoInvalid ? "about-photo-hint" : undefined}
             />
-            {photoUrl && (
-              <img src={photoUrl} alt="Preview" className="mt-3 h-32 w-32 rounded-xl border border-gray-800 object-cover" />
+            {photoInvalid && (
+              <p id="about-photo-hint" role="alert" className="mt-2 text-sm text-red-400">
+                Must start with http:// or https://
+              </p>
+            )}
+            {photoUrl.trim() && !photoInvalid && (
+              <img src={photoUrl.trim()} alt="Photo preview" width={128} height={128} loading="lazy" className="mt-3 h-32 w-32 rounded-xl border border-gray-800 object-cover" />
             )}
           </div>
           <button
@@ -104,16 +135,16 @@ export default function AboutEditor() {
             disabled={disabled}
             className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {loading ? "Loading…" : saving ? "Saving…" : "Save Changes"}
           </button>
           {saveError && (
             <p role="alert" className="text-sm text-red-400">
               {saveError}
             </p>
           )}
-          {saved && !saveError && (
-            <p className="text-sm text-green-400">Saved!</p>
-          )}
+          <p aria-live="polite" role="status" className={saved && !saveError ? "text-sm text-green-400" : "sr-only"}>
+            {saved && !saveError ? "Saved!" : ""}
+          </p>
         </form>
       </main>
     </div>

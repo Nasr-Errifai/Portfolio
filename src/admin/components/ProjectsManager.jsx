@@ -2,15 +2,68 @@ import { useState, useEffect } from "react"
 import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
+import { checkFields, focusField } from "../../lib/validate"
 import Sidebar from "./Sidebar"
 
 const emptyForm = { title: "", description: "", tech: "", image: "", live_url: "", repo_url: "" }
+
+// This one list drives the inputs, their labels and the checks, so a field
+// can never be rendered without its rule.
+const FIELDS = [
+  { key: "title", label: "Title", required: true, placeholder: "EventsMa…" },
+  { key: "image", label: "Image URL", type: "url", placeholder: "https://example.com/preview.png…" },
+  { key: "description", label: "Description", required: true, textarea: true, wide: true, placeholder: "What it does, in one or two sentences…" },
+  { key: "tech", label: "Tech tags", placeholder: "React, Supabase, Tailwind…" },
+  { key: "live_url", label: "Live URL", type: "url", placeholder: "https://yourapp.com…" },
+  { key: "repo_url", label: "Repo URL", type: "url", wide: true, placeholder: "https://github.com/you/repo…" },
+]
+
+// Only real columns, so id and created_at never ride along into an insert.
+const COLUMNS = FIELDS.map((field) => field.key)
+
+function Field({ field, value, error, onChange }) {
+  const id = `project-${field.key}`
+  const errorId = `${id}-error`
+  const shared = {
+    id,
+    name: field.key,
+    value,
+    onChange,
+    placeholder: field.placeholder,
+    autoComplete: "off",
+    required: Boolean(field.required),
+    "aria-invalid": Boolean(error),
+    "aria-describedby": error ? errorId : undefined,
+    className:
+      "w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none",
+  }
+
+  return (
+    <div className={field.wide ? "sm:col-span-2" : undefined}>
+      <label htmlFor={id} className="mb-2 block text-sm text-gray-400">
+        {field.label}
+      </label>
+      {field.textarea ? (
+        <textarea {...shared} rows={3} />
+      ) : (
+        <input {...shared} type={field.type || "text"} />
+      )}
+      {error && (
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-400">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
 
 export default function ProjectsManager() {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const [saveError, setSaveError] = useState("")
+  const [fieldError, setFieldError] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -32,14 +85,38 @@ export default function ProjectsManager() {
     load()
   }, [])
 
+  const setField = (key, value) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+    setFieldError(null)
+  }
+
+  // Focus waits for the commit, so aria-describedby is already on the input
+  // when the screen reader announces it.
+  useEffect(() => {
+    if (fieldError) focusField(`project-${fieldError.key}`)
+  }, [fieldError])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (saving) return
     setSaveError("")
-    const data = {
-      ...form,
-      tech: form.tech.split(",").map((t) => t.trim()).filter(Boolean),
+
+    const problem = checkFields(FIELDS, form)
+    if (problem) {
+      setFieldError(problem)
+      return
     }
 
+    const data = {}
+    for (const key of COLUMNS) {
+      data[key] = String(form[key] ?? "").trim()
+    }
+    data.tech = form.tech
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+
+    setSaving(true)
     const res = editingId
       ? await run("projects.update", () =>
           supabase.from("projects").update(data).eq("id", editingId)
@@ -47,6 +124,7 @@ export default function ProjectsManager() {
       : await run("projects.insert", () =>
           supabase.from("projects").insert([data])
         )
+    setSaving(false)
 
     // Keep the form open and the typed values intact so nothing is lost.
     if (!res.ok) {
@@ -61,13 +139,23 @@ export default function ProjectsManager() {
   }
 
   const handleEdit = (p) => {
-    setForm({ ...p, tech: (p.tech || []).join(", ") })
+    if (saving) return
+    setForm({
+      title: p.title || "",
+      description: p.description || "",
+      tech: (p.tech || []).join(", "),
+      image: p.image || "",
+      live_url: p.live_url || "",
+      repo_url: p.repo_url || "",
+    })
     setEditingId(p.id)
     setSaveError("")
+    setFieldError(null)
     setShowForm(true)
   }
 
   const handleDelete = async (id) => {
+    if (saving) return
     if (!confirm("Delete this project?")) return
     setSaveError("")
     const res = await run("projects.delete", () =>
@@ -79,6 +167,8 @@ export default function ProjectsManager() {
     }
     load()
   }
+
+  const errorFor = (key) => (fieldError?.key === key ? fieldError.message : "")
 
   return (
     <div className="flex min-h-screen">
@@ -92,27 +182,38 @@ export default function ProjectsManager() {
               setForm(emptyForm)
               setEditingId(null)
               setSaveError("")
+              setFieldError(null)
             }}
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim"
+            disabled={saving || loading}
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiPlus /> {showForm ? "Cancel" : "Add Project"}
           </button>
         </div>
 
         {showForm && (
-          <form onSubmit={handleSubmit} className="mb-8 rounded-xl border border-gray-800 bg-surface p-6 space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="mb-8 rounded-xl border border-gray-800 bg-surface p-6 space-y-4"
+          >
             <div className="grid gap-4 sm:grid-cols-2">
-              <input className="rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-              <input className="rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" placeholder="Image URL (optional)" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
+              {FIELDS.map((field) => (
+                <Field
+                  key={field.key}
+                  field={field}
+                  value={form[field.key]}
+                  error={errorFor(field.key)}
+                  onChange={(e) => setField(field.key, e.target.value)}
+                />
+              ))}
             </div>
-            <textarea className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" rows={3} placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <input className="rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" placeholder="Tech tags (comma separated)" value={form.tech} onChange={(e) => setForm({ ...form, tech: e.target.value })} />
-              <input className="rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" placeholder="Live URL" value={form.live_url} onChange={(e) => setForm({ ...form, live_url: e.target.value })} />
-            </div>
-            <input className="w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none" placeholder="Repo URL" value={form.repo_url} onChange={(e) => setForm({ ...form, repo_url: e.target.value })} />
-            <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">
-              {editingId ? "Update" : "Add"} Project
+            <button
+              type="submit"
+              disabled={saving || loading}
+              className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Loading…" : saving ? "Saving…" : editingId ? "Update Project" : "Add Project"}
             </button>
             {saveError && (
               <p role="alert" className="text-sm text-red-400">
@@ -123,7 +224,7 @@ export default function ProjectsManager() {
         )}
 
         {loading ? (
-          <p className="text-sm text-gray-500">Loading projects...</p>
+          <p className="text-sm text-gray-500">Loading projects…</p>
         ) : loadError ? (
           <p role="alert" className="text-sm text-red-400">
             {loadError}
@@ -134,13 +235,13 @@ export default function ProjectsManager() {
           <div className="space-y-3">
             {projects.map((p) => (
               <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-800 bg-surface p-4">
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <h3 className="font-semibold">{p.title}</h3>
                   <p className="text-sm text-gray-400 truncate">{p.description}</p>
                 </div>
-                <div className="flex gap-2 ml-4">
-                  <button onClick={() => handleEdit(p)} aria-label={`Edit ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-accent"><FiEdit2 size={16} /></button>
-                  <button onClick={() => handleDelete(p.id)} aria-label={`Delete ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-red-400"><FiTrash2 size={16} /></button>
+                <div className="ml-4 flex gap-2">
+                  <button onClick={() => handleEdit(p)} disabled={saving} aria-label={`Edit ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"><FiEdit2 size={16} /></button>
+                  <button onClick={() => handleDelete(p.id)} disabled={saving} aria-label={`Delete ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"><FiTrash2 size={16} /></button>
                 </div>
               </div>
             ))}
