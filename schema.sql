@@ -23,9 +23,9 @@ create table if not exists skills (
   created_at timestamptz default now()
 );
 
--- Content table (about + contact combined)
+-- Content table (about + contact combined). Exactly one row, id = 1.
 create table if not exists content (
-  id uuid primary key default uuid_generate_v4(),
+  id smallint primary key default 1,
   bio text default '',
   photo_url text default '',
   email text default '',
@@ -33,11 +33,12 @@ create table if not exists content (
   linkedin text default '',
   resume_url text default '',
   message text default '',
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint content_single_row check (id = 1)
 );
 
--- Insert initial empty row
-insert into content (bio) values ('') on conflict do nothing;
+-- Insert the single initial row (id = 1, never a random uuid)
+insert into content (id) values (1) on conflict do nothing;
 
 -- Enable Row Level Security
 alter table projects enable row level security;

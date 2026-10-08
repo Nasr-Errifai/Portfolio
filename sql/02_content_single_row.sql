@@ -1,4 +1,4 @@
--- Step 2: the content table holds exactly one row, with id = 1.
+-- Migration 02: the content table holds exactly one row, with id = 1.
 -- Run this in Supabase SQL Editor, after schema.sql and sql/01_admin_only.sql.
 --
 -- schema.sql seeds its first row with a random uuid id, so running
@@ -19,6 +19,10 @@ declare
   base_id uuid;
   older record;
 begin
+  if to_regclass('public.content') is null then
+    raise exception 'public.content does not exist: run schema.sql first';
+  end if;
+
   -- Already migrated: id is smallint now, and smallint has no cast to
   -- uuid, so the select below would error. Nothing left to merge.
   if (select data_type from information_schema.columns

@@ -6,8 +6,10 @@ import Sidebar from "./Sidebar"
 export default function AboutEditor() {
   const [bio, setBio] = useState("")
   const [photoUrl, setPhotoUrl] = useState("")
+  const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
   const [saveError, setSaveError] = useState("")
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -23,6 +25,7 @@ export default function AboutEditor() {
       } else {
         setLoadError(res.error)
       }
+      setLoading(false)
     })
     return () => {
       active = false
@@ -33,6 +36,7 @@ export default function AboutEditor() {
     e.preventDefault()
     setSaveError("")
     setSaved(false)
+    setSaving(true)
 
     // content holds exactly one row (sql/02_content_single_row.sql), so a
     // single upsert is enough. The other columns keep their values, because
@@ -43,6 +47,8 @@ export default function AboutEditor() {
         .upsert({ id: 1, bio, photo_url: photoUrl }, { onConflict: "id" })
     )
 
+    setSaving(false)
+
     // Nothing is cleared on failure, so the typed bio is never lost.
     if (!res.ok) {
       setSaveError(res.error)
@@ -51,6 +57,10 @@ export default function AboutEditor() {
 
     setSaved(true)
   }
+
+  // Saving while the load is still running would send empty values over the
+  // real bio, so the button stays disabled until the data arrived.
+  const disabled = loading || saving || loadError !== ""
 
   return (
     <div className="flex min-h-screen">
@@ -89,8 +99,12 @@ export default function AboutEditor() {
               <img src={photoUrl} alt="Preview" className="mt-3 h-32 w-32 rounded-xl border border-gray-800 object-cover" />
             )}
           </div>
-          <button type="submit" className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim">
-            Save Changes
+          <button
+            type="submit"
+            disabled={disabled}
+            className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Changes"}
           </button>
           {saveError && (
             <p role="alert" className="text-sm text-red-400">

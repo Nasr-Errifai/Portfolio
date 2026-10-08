@@ -59,7 +59,7 @@ Content:
 ## Roadmap
 ### Phase 1: Finish the fixes
 - [x] 1. Error handling everywhere (commit 99359a0)
-- [ ] 2. content table = exactly one row (sql/02, id = 1, upsert)
+- [x] 2. content table = exactly one row (sql/02, id = 1, upsert) (commit 1edaa32)
 - [ ] 3. Load data once (src/data/usePortfolioData.js); the navbar shows only visible sections (empty sections are already hidden)
 - [ ] 4. ProjectsManager sends only real columns; link and email validation; "Saving..." state (ContactEditor is already fixed)
 - [ ] 5. AuthProvider + one guard + AdminShell (Sidebar + <Outlet />)
