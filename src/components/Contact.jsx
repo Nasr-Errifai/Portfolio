@@ -1,33 +1,9 @@
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { FiMail, FiGithub, FiLinkedin, FiDownload } from "react-icons/fi"
-import { supabase } from "../supabase"
-import { run } from "../lib/query"
+import { hasContact } from "../data/usePortfolioData"
 
-export default function Contact({ onError }) {
-  const [content, setContent] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    run("content.select (contact)", () =>
-      supabase.from("content").select("*").single()
-    ).then((res) => {
-      if (!active) return
-      if (res.ok) setContent(res.data)
-      else {
-        setFailed(true)
-        onError?.()
-      }
-      setLoading(false)
-    })
-    return () => {
-      active = false
-    }
-  }, [onError])
-
-  if (loading || failed || !content) return null
+export default function Contact({ content }) {
+  if (!hasContact(content)) return null
 
   const { email, github, linkedin, resume_url, message } = content
 
@@ -36,8 +12,6 @@ export default function Contact({ onError }) {
     github && { icon: FiGithub, label: "GitHub", href: github },
     linkedin && { icon: FiLinkedin, label: "LinkedIn", href: linkedin },
   ].filter(Boolean)
-
-  if (links.length === 0 && !resume_url) return null
 
   return (
     <section id="contact" className="px-6 py-24">

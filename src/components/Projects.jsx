@@ -1,36 +1,8 @@
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { FiExternalLink, FiGithub } from "react-icons/fi"
-import { supabase } from "../supabase"
-import { run } from "../lib/query"
 
-export default function Projects({ onError }) {
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    run("projects.select (public)", () =>
-      supabase
-        .from("projects")
-        .select("*")
-        .order("created_at", { ascending: false })
-    ).then((res) => {
-      if (!active) return
-      if (res.ok) setProjects(res.data || [])
-      else {
-        setFailed(true)
-        onError?.()
-      }
-      setLoading(false)
-    })
-    return () => {
-      active = false
-    }
-  }, [onError])
-
-  if (loading || failed || projects.length === 0) return null
+export default function Projects({ projects }) {
+  if (projects.length === 0) return null
 
   return (
     <section id="projects" className="px-6 py-24">

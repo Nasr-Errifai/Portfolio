@@ -1,36 +1,11 @@
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { supabase } from "../supabase"
-import { run } from "../lib/query"
+import { hasBio } from "../data/usePortfolioData"
 
-export default function About({ onError }) {
-  const [content, setContent] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
+export default function About({ content }) {
+  if (!hasBio(content)) return null
 
-  useEffect(() => {
-    let active = true
-    run("content.select (about)", () =>
-      supabase.from("content").select("*").single()
-    ).then((res) => {
-      if (!active) return
-      if (res.ok) setContent(res.data)
-      else {
-        setFailed(true)
-        onError?.()
-      }
-      setLoading(false)
-    })
-    return () => {
-      active = false
-    }
-  }, [onError])
-
-  if (loading || failed) return null
-
-  const bio = content?.bio
-  const photo = content?.photo_url
-  if (!bio && !photo) return null
+  const bio = content.bio
+  const photo = content.photo_url
 
   return (
     <section id="about" className="px-6 py-24">

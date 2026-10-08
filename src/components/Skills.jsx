@@ -1,32 +1,7 @@
-import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { supabase } from "../supabase"
-import { run } from "../lib/query"
 
-export default function Skills({ onError }) {
-  const [skills, setSkills] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    let active = true
-    run("skills.select (public)", () =>
-      supabase.from("skills").select("*").order("category")
-    ).then((res) => {
-      if (!active) return
-      if (res.ok) setSkills(res.data || [])
-      else {
-        setFailed(true)
-        onError?.()
-      }
-      setLoading(false)
-    })
-    return () => {
-      active = false
-    }
-  }, [onError])
-
-  if (loading || failed || skills.length === 0) return null
+export default function Skills({ skills }) {
+  if (skills.length === 0) return null
 
   const grouped = skills.reduce((acc, skill) => {
     const cat = skill.category || "Other"
@@ -34,8 +9,6 @@ export default function Skills({ onError }) {
     acc[cat].push(skill.name)
     return acc
   }, {})
-
-  if (Object.keys(grouped).length === 0) return null
 
   return (
     <section id="skills" className="px-6 py-24">
