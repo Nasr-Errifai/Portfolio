@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
 import { checkFields, focusField } from "../../lib/validate"
-import Sidebar from "./Sidebar"
 
 const COLUMNS = "email, github, linkedin, resume_url, message"
 
@@ -112,66 +111,66 @@ export default function ContactEditor() {
   const disabled = loading || saving || loadError !== ""
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-8">
-        <h1 className="mb-8 text-2xl font-bold">Contact Section</h1>
+    <>
+      <h1 className="mb-8 text-2xl font-bold">Contact Section</h1>
 
-        {loadError && (
-          <p role="alert" className="mb-6 text-sm text-red-400">
-            {loadError}
+      {loadError && (
+        <p role="alert" className="mb-6 text-sm text-red-400">
+          {loadError}
+        </p>
+      )}
+
+      <form onSubmit={handleSave} noValidate className="max-w-xl space-y-5">
+        {FIELDS.map(({ key, label, placeholder, type, textarea }) => {
+          const error = fieldError?.key === key ? fieldError.message : ""
+          const errorId = `contact-${key}-error`
+          const shared = {
+            id: `contact-${key}`,
+            name: key,
+            value: form[key],
+            onChange: (e) => setField(key, e.target.value),
+            placeholder,
+            autoComplete: "off",
+            // The load overwrites these values, so typing before it lands
+            // would be pointless.
+            disabled: loading,
+            "aria-invalid": Boolean(error),
+            "aria-describedby": error ? errorId : undefined,
+            className:
+              "w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none",
+          }
+          return (
+            <div key={key}>
+              <label className="mb-2 block text-sm text-gray-400" htmlFor={`contact-${key}`}>{label}</label>
+              {textarea ? (
+                <textarea {...shared} rows={3} className={`${shared.className} py-3`} />
+              ) : (
+                <input {...shared} type={type || "text"} spellCheck={false} />
+              )}
+              {error && (
+                <p id={errorId} role="alert" className="mt-1 text-sm text-red-400">
+                  {error}
+                </p>
+              )}
+            </div>
+          )
+        })}
+        <button
+          type="submit"
+          disabled={disabled}
+          className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "Loading…" : saving ? "Saving…" : "Save Changes"}
+        </button>
+        {saveError && (
+          <p role="alert" className="text-sm text-red-400">
+            {saveError}
           </p>
         )}
-
-        <form onSubmit={handleSave} noValidate className="max-w-xl space-y-5">
-          {FIELDS.map(({ key, label, placeholder, type, textarea }) => {
-            const error = fieldError?.key === key ? fieldError.message : ""
-            const errorId = `contact-${key}-error`
-            const shared = {
-              id: `contact-${key}`,
-              name: key,
-              value: form[key],
-              onChange: (e) => setField(key, e.target.value),
-              placeholder,
-              autoComplete: "off",
-              "aria-invalid": Boolean(error),
-              "aria-describedby": error ? errorId : undefined,
-              className:
-                "w-full rounded-lg border border-gray-700 bg-bg px-4 py-2 text-sm focus:border-accent focus:outline-none",
-            }
-            return (
-              <div key={key}>
-                <label className="mb-2 block text-sm text-gray-400" htmlFor={`contact-${key}`}>{label}</label>
-                {textarea ? (
-                  <textarea {...shared} rows={3} className={`${shared.className} py-3`} />
-                ) : (
-                  <input {...shared} type={type || "text"} spellCheck={false} />
-                )}
-                {error && (
-                  <p id={errorId} role="alert" className="mt-1 text-sm text-red-400">
-                    {error}
-                  </p>
-                )}
-              </div>
-            )
-          })}
-          <button
-            type="submit"
-            disabled={disabled}
-            className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Loading…" : saving ? "Saving…" : "Save Changes"}
-          </button>
-          {saveError && (
-            <p role="alert" className="text-sm text-red-400">
-              {saveError}
-            </p>
-          )}
-          <p aria-live="polite" role="status" className={saved && !saveError ? "text-sm text-green-400" : "sr-only"}>
-            {saved && !saveError ? "Saved!" : ""}
-          </p>
-        </form>
-      </main>
-    </div>
+        <p aria-live="polite" role="status" className={saved && !saveError ? "text-sm text-green-400" : "sr-only"}>
+          {saved && !saveError ? "Saved!" : ""}
+        </p>
+      </form>
+    </>
   )
 }

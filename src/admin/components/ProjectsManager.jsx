@@ -3,7 +3,6 @@ import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
 import { checkFields, focusField } from "../../lib/validate"
-import Sidebar from "./Sidebar"
 
 const emptyForm = { title: "", description: "", tech: "", image: "", live_url: "", repo_url: "" }
 
@@ -158,9 +157,13 @@ export default function ProjectsManager() {
     if (saving) return
     if (!confirm("Delete this project?")) return
     setSaveError("")
+    // saving also covers the delete, so the buttons and the form cannot
+    // start a second write while this one is in flight.
+    setSaving(true)
     const res = await run("projects.delete", () =>
       supabase.from("projects").delete().eq("id", id)
     )
+    setSaving(false)
     if (!res.ok) {
       setSaveError(res.error)
       return
@@ -171,89 +174,86 @@ export default function ProjectsManager() {
   const errorFor = (key) => (fieldError?.key === key ? fieldError.message : "")
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-8">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Projects</h1>
-          <button
-            onClick={() => {
-              setShowForm(!showForm)
-              setForm(emptyForm)
-              setEditingId(null)
-              setSaveError("")
-              setFieldError(null)
-            }}
-            disabled={saving || loading}
-            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <FiPlus /> {showForm ? "Cancel" : "Add Project"}
-          </button>
-        </div>
+    <>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Projects</h1>
+        <button
+          onClick={() => {
+            setShowForm(!showForm)
+            setForm(emptyForm)
+            setEditingId(null)
+            setSaveError("")
+            setFieldError(null)
+          }}
+          disabled={saving || loading}
+          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <FiPlus /> {showForm ? "Cancel" : "Add Project"}
+        </button>
+      </div>
 
-        {showForm && (
-          <form
-            onSubmit={handleSubmit}
-            noValidate
-            className="mb-8 rounded-xl border border-gray-800 bg-surface p-6 space-y-4"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              {FIELDS.map((field) => (
-                <Field
-                  key={field.key}
-                  field={field}
-                  value={form[field.key]}
-                  error={errorFor(field.key)}
-                  onChange={(e) => setField(field.key, e.target.value)}
-                />
-              ))}
-            </div>
-            <button
-              type="submit"
-              disabled={saving || loading}
-              className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? "Loading…" : saving ? "Saving…" : editingId ? "Update Project" : "Add Project"}
-            </button>
-            {saveError && (
-              <p role="alert" className="text-sm text-red-400">
-                {saveError}
-              </p>
-            )}
-          </form>
-        )}
-
-        {loading ? (
-          <p className="text-sm text-gray-500">Loading projects…</p>
-        ) : loadError ? (
-          <p role="alert" className="text-sm text-red-400">
-            {loadError}
-          </p>
-        ) : projects.length === 0 ? (
-          <p className="text-gray-500 italic">No projects yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {projects.map((p) => (
-              <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-800 bg-surface p-4">
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold">{p.title}</h3>
-                  <p className="text-sm text-gray-400 truncate">{p.description}</p>
-                </div>
-                <div className="ml-4 flex gap-2">
-                  <button onClick={() => handleEdit(p)} disabled={saving} aria-label={`Edit ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"><FiEdit2 size={16} /></button>
-                  <button onClick={() => handleDelete(p.id)} disabled={saving} aria-label={`Delete ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"><FiTrash2 size={16} /></button>
-                </div>
-              </div>
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="mb-8 rounded-xl border border-gray-800 bg-surface p-6 space-y-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            {FIELDS.map((field) => (
+              <Field
+                key={field.key}
+                field={field}
+                value={form[field.key]}
+                error={errorFor(field.key)}
+                onChange={(e) => setField(field.key, e.target.value)}
+              />
             ))}
           </div>
-        )}
+          <button
+            type="submit"
+            disabled={saving || loading}
+            className="rounded-lg bg-accent px-6 py-2 text-sm font-medium text-black transition-all hover:bg-accent-dim disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Loading…" : saving ? "Saving…" : editingId ? "Update Project" : "Add Project"}
+          </button>
+          {saveError && (
+            <p role="alert" className="text-sm text-red-400">
+              {saveError}
+            </p>
+          )}
+        </form>
+      )}
 
-        {!showForm && saveError && (
-          <p role="alert" className="mt-6 text-sm text-red-400">
-            {saveError}
-          </p>
-        )}
-      </main>
-    </div>
+      {loading ? (
+        <p role="status" className="text-sm text-gray-500">Loading projects…</p>
+      ) : loadError ? (
+        <p role="alert" className="text-sm text-red-400">
+          {loadError}
+        </p>
+      ) : projects.length === 0 ? (
+        <p className="text-gray-500 italic">No projects yet.</p>
+      ) : (
+        <div className="space-y-3">
+          {projects.map((p) => (
+            <div key={p.id} className="flex items-center justify-between rounded-lg border border-gray-800 bg-surface p-4">
+              <div className="min-w-0 flex-1">
+                <h2 className="font-semibold">{p.title}</h2>
+                <p className="text-sm text-gray-400 truncate">{p.description}</p>
+              </div>
+              <div className="ml-4 flex gap-2">
+                <button onClick={() => handleEdit(p)} disabled={saving} aria-label={`Edit ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"><FiEdit2 size={16} /></button>
+                <button onClick={() => handleDelete(p.id)} disabled={saving} aria-label={`Delete ${p.title}`} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-800 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"><FiTrash2 size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!showForm && saveError && (
+        <p role="alert" className="mt-6 text-sm text-red-400">
+          {saveError}
+        </p>
+      )}
+    </>
   )
 }

@@ -3,10 +3,14 @@ import { useNavigate } from "react-router-dom"
 import { FcGoogle } from "react-icons/fc"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
+import { useAuth } from "../authContext"
 
 export default function Login() {
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  // A failed first session lookup used to look identical to "signed out",
+  // which bounced this page and the dashboard guard in a loop.
+  const { blocked } = useAuth()
 
   useEffect(() => {
     run("auth.getSession", () => supabase.auth.getSession()).then((res) => {
@@ -38,9 +42,9 @@ export default function Login() {
         >
           <FcGoogle size={20} /> Sign in with Google
         </button>
-        {error && (
+        {(error || blocked?.message) && (
           <p role="alert" className="mt-4 text-sm text-red-400">
-            {error}
+            {error || blocked.message}
           </p>
         )}
       </div>

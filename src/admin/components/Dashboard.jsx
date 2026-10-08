@@ -2,7 +2,6 @@ import { useState, useEffect } from "react"
 import { FiFolder, FiCode, FiUser, FiMail } from "react-icons/fi"
 import { supabase } from "../../supabase"
 import { run } from "../../lib/query"
-import Sidebar from "./Sidebar"
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
@@ -11,6 +10,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     let active = true
+    // Both counts are independent, so they are asked in parallel.
     Promise.all([
       run("projects.count", () =>
         supabase.from("projects").select("*", { count: "exact", head: true })
@@ -43,37 +43,34 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 p-8">
-        <h1 className="mb-8 text-2xl font-bold">Dashboard</h1>
+    <>
+      <h1 className="mb-8 text-2xl font-bold">Dashboard</h1>
 
-        {error && (
-          <p role="alert" className="mb-6 text-sm text-red-400">
-            {error}
-          </p>
-        )}
-
-        {loading ? (
-          <p className="text-sm text-gray-500">Loading counts...</p>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {cards.map(({ icon: Icon, label, count, color }) => (
-              <div key={label} className="rounded-xl border border-gray-800 bg-surface p-6">
-                <div className="mb-3 flex items-center gap-3">
-                  <Icon className={color} size={24} />
-                  <span className="text-sm text-gray-400">{label}</span>
-                </div>
-                <p className="text-3xl font-bold">{count}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <p className="mt-12 text-sm text-gray-500">
-          Use the sidebar to manage your portfolio content.
+      {error && (
+        <p role="alert" className="mb-6 text-sm text-red-400">
+          {error}
         </p>
-      </main>
-    </div>
+      )}
+
+      {loading ? (
+        <p role="status" className="text-sm text-gray-500">Loading counts…</p>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {cards.map(({ icon: Icon, label, count, color }) => (
+            <div key={label} className="rounded-xl border border-gray-800 bg-surface p-6">
+              <div className="mb-3 flex items-center gap-3">
+                <Icon className={color} size={24} aria-hidden="true" />
+                <span className="text-sm text-gray-400">{label}</span>
+              </div>
+              <p className="text-3xl font-bold">{count}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="mt-12 text-sm text-gray-500">
+        Use the sidebar to manage your portfolio content.
+      </p>
+    </>
   )
 }

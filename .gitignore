@@ -1,5 +1,6 @@
 # Local agent tooling
 .opencode
+.playwright-mcp
 
 # Python cache
 __pycache__
