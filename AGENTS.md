@@ -60,11 +60,11 @@ Content:
 ### Phase 1: Finish the fixes
 - [x] 1. Error handling everywhere (commit 99359a0)
 - [x] 2. content table = exactly one row (sql/02, id = 1, upsert) (commit 1edaa32)
-- [ ] 3. Load data once (src/data/usePortfolioData.js); the navbar shows only visible sections (empty sections are already hidden)
-- [ ] 4. ProjectsManager sends only real columns; link and email validation; "Saving..." state (ContactEditor is already fixed)
-- [ ] 5. AuthProvider + one guard + AdminShell (Sidebar + <Outlet />)
-- [ ] 6. schema.sql = final state
-- [ ] 7. Verification (SQL checks, curl RLS test, manual tests) + Supabase dashboard checklist
+- [x] 3. Load data once (src/data/usePortfolioData.js); the navbar shows only visible sections (empty sections are already hidden) (commit 1ba5ccd)
+- [x] 4. ProjectsManager sends only real columns; link and email validation; "Saving..." state (ContactEditor is already fixed) (commit 3a91aba)
+- [x] 5. AuthProvider + one guard + AdminShell (Sidebar + <Outlet />) (commit 53a29df)
+- [x] 6. schema.sql = final state (commit 36f0515)
+- [ ] 7. Verification (SQL checks, curl RLS test, manual tests) + Supabase dashboard checklist — sql/03_verify.sql written (commit 3a7dfeb), manual tests done; waiting for me to run the SQL on an empty database
 
 ### Phase 2: Projects
 - [ ] Storage bucket "portfolio" + uploads (project images, photo, CV)
