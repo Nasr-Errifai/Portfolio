@@ -5,11 +5,11 @@ My personal portfolio with an admin dashboard. I'm a 4th-year software engineeri
 Explain your plans and summaries in simple English, with short sentences.
 
 ## Stack
-React 19 + Vite, Tailwind CSS 4, react-router-dom 7, framer-motion, react-icons, Supabase (Postgres + RLS, Google login, Storage). JavaScript only. Lint: oxlint.
+React 19 + Vite, Tailwind CSS 4, react-router-dom 7, framer-motion, react-icons, Supabase (Postgres + RLS, email + password login, Storage). JavaScript only. Lint: oxlint.
 
 ## Project map
 - src/pages/Home.jsx + src/components/ → the public one-page site (Hero, About, Projects, Skills, Contact, Footer)
-- src/admin/ → the admin under /admin (lazy-loaded), Google login, access checked with rpc("is_admin")
+- src/admin/ → the admin under /admin (lazy-loaded), email + password login, access checked with rpc("is_admin")
 - src/lib/query.js → run(context, fn): the only way to call Supabase (checks `error`, returns { ok, data, error, count })
 - src/supabase.js → the client, from VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (.env.local)
 - schema.sql + sql/NN_*.sql → schema, RLS policies and migrations. I run them myself in the Supabase SQL Editor.

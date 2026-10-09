@@ -171,11 +171,11 @@ insert into public.projects (title) values ('this must fail');
 -- [ ] SQL Editor: sql/03_verify.sql checks 1-7 pass, check 8 errors
 -- [ ] Database -> Tables: projects, skills, content, admins, RLS on all 4
 -- [ ] Database -> Policies: 6 policies, none named "Auth ..."
--- [ ] Authentication -> Providers -> Google: enabled, client id + secret set
--- [ ] Authentication -> URL Configuration -> Redirect URLs:
---       http://localhost:5173/admin/dashboard
---       plus your production /admin/dashboard URL
--- [ ] Authentication -> Users: your account exists
+-- [ ] Authentication -> Providers -> Email: enabled (this is the default;
+--       the admin signs in with an email and password)
+-- [ ] Authentication -> Users: your account exists (created with Auto
+--       Confirm, or confirmed by hand — otherwise the confirmation link
+--       points at the default Site URL and you cannot sign in)
 -- [ ] SQL Editor: your user id inserted into public.admins
 -- [ ] The public site shows About, Projects, Skills and Contact
--- [ ] The admin lets you save, and a second Google account cannot save
+-- [ ] The admin lets you save, and a second account cannot save

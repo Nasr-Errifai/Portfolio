@@ -8,6 +8,12 @@ export default function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
   const [blocked, setBlocked] = useState(null)
+  // Re-signing-in keeps the same user id, so a failed is_admin() check has
+  // to be retried some other way or the admin stays stuck on Blocked.
+  const [checkNonce, setCheckNonce] = useState(0)
+  // A sign-out triggered by blocked.signOut is still on the wire; signing
+  // back in during it would have the stale sign-out wipe the new session.
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -69,17 +75,29 @@ export default function AuthProvider({ children }) {
     }
     // Keyed on userId rather than the session object on purpose: the object
     // changes on every token refresh, and that must not re-run this check or
-    // blank a screen under an open form.
-  }, [loading, userId])
+    // blank a screen under an open form. checkNonce is only ever bumped by
+    // retryAccessCheck(), never by a refresh.
+  }, [loading, userId, checkNonce])
+
+  const retryAccessCheck = () => {
+    if (signingOut) return
+    setBlocked(null)
+    setCheckNonce((nonce) => nonce + 1)
+  }
 
   // A signed-in account that is not an admin is signed straight back out, so
   // it cannot sit in front of a dashboard it will never reach. blocked keeps
   // its identity while the session clears, so this does not fire twice and
-  // the message stays on screen.
+  // the message stays on screen. signingOut keeps the sign-in button off
+  // until this lands: a stale sign-out finishing after a new sign-in would
+  // wipe the new session. If the request ever hangs, reloading the page
+  // resets it.
   useEffect(() => {
-    if (blocked?.signOut) run("auth.signOut (no access)", () => supabase.auth.signOut())
+    if (!blocked?.signOut) return
+    setSigningOut(true)
+    run("auth.signOut (no access)", () => supabase.auth.signOut()).finally(() => setSigningOut(false))
   }, [blocked])
 
-  const value = { session, loading, isAdmin, blocked }
+  const value = { session, loading, isAdmin, blocked, signingOut, retryAccessCheck }
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
