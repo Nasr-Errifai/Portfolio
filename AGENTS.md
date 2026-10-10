@@ -33,7 +33,7 @@ React 19 + Vite, Tailwind CSS 4, react-router-dom 7, framer-motion, react-icons,
 - supabase-postgres-best-practices → writing or reviewing SQL, tables, constraints, indexes, RLS.
 - vercel-react-best-practices → writing or reviewing React components, hooks and data fetching. This is a Vite SPA, so skip the Next.js and server-only rules.
 - web-design-guidelines → after every UI change: check accessibility, focus, forms, images and motion, and fix the important findings.
-- frontend-design → only for design work (Phase 5, or when I ask). Propose a design plan first and wait for my OK.
+- frontend-design → only for design work (Phase 4, or when I ask). Propose a design plan first and wait for my OK.
 
 ## MCP tools: use them when they are connected
 - supabase (read-only): look at tables, policies and data, and run the verification queries yourself. Never try to change the database; write SQL files for me instead.
@@ -43,14 +43,14 @@ React 19 + Vite, Tailwind CSS 4, react-router-dom 7, framer-motion, react-icons,
 ## Rules
 Security:
 - Never put the service_role / secret key in the frontend or in Git. Never commit .env.local.
-- Every table has RLS. Public read only when needed. Writes only when public.is_admin() is true. The only exception is the contact form insert in Phase 5.
+- Every table has RLS. Public read only when needed. Writes only when public.is_admin() is true. The only exception is the contact form insert in Phase 6.
 - New SQL goes in a new numbered file in sql/ (02_, 03_...), in one transaction, safe to run twice. schema.sql always shows the final state for a fresh install.
 
 Code:
 - Every Supabase call goes through run().
 - Visitors never see technical errors or admin hints. The admin shows the real error.
 - Every data screen handles 4 states: loading, error, empty, data.
-- Keep the current design until Phase 5. Small, readable components, no dead code.
+- Keep the current design until Phase 4. Small, readable components, no dead code.
 
 Content:
 - Never invent facts about me (projects, dates, jobs, grades, skills). Ask me, and write TODO where something is missing.
@@ -64,26 +64,35 @@ Content:
 - [x] 4. ProjectsManager sends only real columns; link and email validation; "Saving..." state (ContactEditor is already fixed) (commit 3a91aba)
 - [x] 5. AuthProvider + one guard + AdminShell (Sidebar + <Outlet />) (commit 53a29df)
 - [x] 6. schema.sql = final state (commit 36f0515)
-- [ ] 7. Verification (SQL checks, curl RLS test, manual tests) + Supabase dashboard checklist — sql/03_verify.sql written (commit 3a7dfeb), manual tests done; waiting for me to run the SQL on an empty database
+- [ ] 7. Verification (SQL checks, curl RLS test, manual tests) + Supabase dashboard checklist
 
 ### Phase 2: Projects
 - [ ] Storage bucket "portfolio" + uploads (project images, photo, CV)
 - [ ] New project columns: slug, summary, content (Markdown), role, dates, status, gallery, featured, sort_order, published
+- [ ] A /projects page listing all published projects
 - [ ] /projects/:slug page (react-markdown) + admin form for the new fields
 - [ ] Write the EventsMa and Hirelink case studies with me
 
 ### Phase 3: About me
 - [ ] Editable hero (headline, tagline, location, open to work, CV button)
 - [ ] Experience & education timeline (table + admin page + section)
+- [ ] Certifications in that timeline: title, issuer, year, image (admin fields + section)
+- [ ] Skills: optional icon per skill, shown in a Tech Stack section grouped by category
 - [ ] Write the hero text, bio and experience with me
 
-### Phase 4: Put it online
+### Phase 4: Design
+- [ ] New design with frontend-design: plan → my OK → build → check with screenshots
+- Goal: keep the structure of a one-page developer portfolio — big name hero,
+  About with CV, Education, Experience, Featured Work with project pages,
+  Certifications, Tech Stack, Contact, footer links — but give it its own look.
+  Never copy another site's design or text.
+
+### Phase 5: Put it online
 - [ ] Vercel (vercel.json rewrites, environment variables), Supabase redirect URLs, custom domain
 - [ ] Favicon, og:image, meta tags, sitemap.xml, robots.txt, README
 - [ ] GitHub Action: daily Supabase keep-alive
 - [ ] Final check with web-design-guidelines + Lighthouse on mobile
 
-### Phase 5: Extras
+### Phase 6: Extras
 - [ ] Contact form + messages inbox in the admin
 - [ ] French / English (react-i18next + _fr columns)
-- [ ] New design with frontend-design: plan → my OK → build → check with screenshots
